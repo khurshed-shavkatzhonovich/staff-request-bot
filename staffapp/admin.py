@@ -29,11 +29,13 @@ class StaffRequestAdmin(admin.ModelAdmin, ExportAsCSV):
     list_display = (
         'id', 
         'get_request_type_display', 
-        'get_status_display',
         'telegram_user_info',
-        'site', 
+        'site',
+        'description',
         'amount',
+        'equipment',
         'created_at',
+        'get_status_display',
         'view_link'
     )
     list_filter = (
