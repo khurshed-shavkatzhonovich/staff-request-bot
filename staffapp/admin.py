@@ -4,28 +4,57 @@ from django.utils.html import format_html
 from django.urls import reverse
 from django.http import HttpResponse
 import csv
+import openpyxl
+from openpyxl.utils import get_column_letter
 
 class ExportAsCSV:
-    """Класс для экспорта в CSV"""
-    
     def export_as_csv(self, request, queryset):
         meta = self.model._meta
         field_names = [field.name for field in meta.fields]
-        
+
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = f'attachment; filename={meta.model_name}.csv'
         writer = csv.writer(response)
-        
         writer.writerow(field_names)
         for obj in queryset:
             writer.writerow([getattr(obj, field) for field in field_names])
-        
         return response
-    
-    export_as_csv.short_description = "Экспорт выбранных в CSV"
+
+    export_as_csv.short_description = "Экспорт в CSV"
+
+    def export_as_excel(self, request, queryset):
+        meta = self.model._meta
+        field_names = [field.name for field in meta.fields]
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Данные"
+
+        # Заголовки
+        for col_num, column_title in enumerate(field_names, 1):
+            col_letter = get_column_letter(col_num)
+            ws[f'{col_letter}1'] = column_title
+
+        # Данные
+        for row_num, obj in enumerate(queryset, 2):
+            for col_num, field in enumerate(field_names, 1):
+                value = getattr(obj, field)
+                ws.cell(row=row_num, column=col_num, value=str(value))
+
+        # Ответ
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = f'attachment; filename={meta.model_name}.xlsx'
+        wb.save(response)
+        return response
+
+    export_as_excel.short_description = "Экспорт в Excel"
 
 @admin.register(StaffRequest)
 class StaffRequestAdmin(admin.ModelAdmin, ExportAsCSV):
+    actions = ['export_as_csv', 'export_as_excel']
+
     list_display = (
         'id', 
         'get_request_type_display', 
@@ -52,9 +81,7 @@ class StaffRequestAdmin(admin.ModelAdmin, ExportAsCSV):
     )
     list_per_page = 20
     readonly_fields = ('created_at', 'updated_at')
-    
-    # Правильное объявление view_link
-    view_link = ['export_as_csv']
+
     
     fieldsets = (
         ('Основная информация', {
