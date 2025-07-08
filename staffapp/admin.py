@@ -24,21 +24,21 @@ class ExportAsCSV:
 
     def export_as_excel(self, request, queryset):
         meta = self.model._meta
-        field_names = [field.name for field in meta.fields]
+        fields = [(field.name, field.verbose_name) for field in meta.fields]
 
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.title = "Данные"
 
         # Заголовки
-        for col_num, column_title in enumerate(field_names, 1):
+        for col_num, (_, verbose_name) in enumerate(fields, 1):
             col_letter = get_column_letter(col_num)
-            ws[f'{col_letter}1'] = column_title
+            ws[f'{col_letter}1'] = verbose_name
 
         # Данные
         for row_num, obj in enumerate(queryset, 2):
-            for col_num, field in enumerate(field_names, 1):
-                value = getattr(obj, field)
+            for col_num, (field_name, _) in enumerate(fields, 1):
+                value = getattr(obj, field_name)
                 ws.cell(row=row_num, column=col_num, value=str(value))
 
         # Ответ
