@@ -118,12 +118,11 @@ TEMPLATES[0]['DIRS'] = [BASE_DIR / "templates"]
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'ru'
 
-TIME_ZONE = 'UTC'
-
+TIME_ZONE = 'Asia/Dushanbe'  # Или 'Europe/Moscow', если хочешь московское время
 USE_I18N = True
-
+USE_L10N = True
 USE_TZ = True
 
 
