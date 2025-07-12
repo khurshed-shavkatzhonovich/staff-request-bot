@@ -18,8 +18,8 @@ def setup(bot_instance, approver_id, allowed_id):
     """Инициализация конфигурации"""
     global bot, APPROVER_ID, ALLOWED_ID
     bot = bot_instance
-    APPROVER_ID = int(approver_id)
-    ALLOWED_ID = int(allowed_id)
+    APPROVER_ID = approver_id
+    ALLOWED_ID = allowed_id
 
 @sync_to_async
 def get_request(request_id):

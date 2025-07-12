@@ -38,8 +38,8 @@ from bot.handlers.callback_handlers import router as callback_router, setup as c
 
 # Загрузка конфигурации
 TARGET_CHAT_ID = os.getenv("TARGET_CHAT_ID")
-APPROVER_ID = os.getenv("APPROVER_ID")
-ALLOWED_ID = os.getenv("ALLOWED_ID")
+APPROVER_ID = list(map(int, os.getenv("APPROVER_ID", "").split(",")))
+ALLOWED_ID = list(map(int, os.getenv("ALLOWED_ID", "").split(",")))
 
 # Инициализация обработчиков
 form_handlers_setup(bot, dp, TARGET_CHAT_ID)
