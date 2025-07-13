@@ -74,7 +74,7 @@ async def handle_approve(callback: CallbackQuery):
         user = callback.from_user
         username = user.username or user.full_name
         
-        if user.id != APPROVER_ID:
+        if user.id not in APPROVER_ID:
             await callback.answer("❌ У вас нет прав на утверждение!", show_alert=True)
             return
 
@@ -113,7 +113,7 @@ async def handle_allow(callback: CallbackQuery):
         user = callback.from_user
         username = user.username or user.full_name
         
-        if user.id != ALLOWED_ID:
+        if user.id not in ALLOWED_ID:
             await callback.answer("❌ У вас нет прав на разрешение!", show_alert=True)
             return
 
