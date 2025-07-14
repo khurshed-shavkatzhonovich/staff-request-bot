@@ -6,4 +6,5 @@ class Form(StatesGroup):
     site = State()
     equipment = State()
     description = State()
+    currency = State()
     amount = State()

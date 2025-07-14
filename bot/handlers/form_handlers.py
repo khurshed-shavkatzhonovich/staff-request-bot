@@ -1,7 +1,7 @@
 # bot/handlers/form_handlers.py
 from django.utils import timezone
 from aiogram import F
-from aiogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
+from aiogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from aiogram.fsm.context import FSMContext
 from aiogram.filters import CommandStart
 from staffapp.models import StaffRequest
@@ -9,6 +9,7 @@ from decimal import Decimal
 import logging
 from bot.handlers.states import Form
 from asgiref.sync import sync_to_async
+
 
 logger = logging.getLogger(__name__)
 
@@ -152,17 +153,44 @@ async def process_description(message: Message, state: FSMContext):
             return
             
         await state.update_data(description=message.text)
-        await state.set_state(Form.amount)
-        await message.answer("Введите сумму (сомони):", reply_markup=get_cancel_kb())
+        await state.set_state(Form.currency)
+        await message.answer("Введите валюту:", reply_markup=get_currency_kb())
         logger.info(f"User {message.from_user.id} entered description: {message.text}")
     except Exception as e:
         logger.error(f"Error in process_description: {e}")
         await message.answer("Ошибка при вводе описания", reply_markup=get_main_kb())
         await state.clear()
 
+async def process_currency(message: Message, state: FSMContext):
+    """Обработка выбора валюты"""
+    try:
+        if message.text == "❌ Отменить":
+            await message.answer("Действие отменено", reply_markup=get_main_kb())
+            await state.clear()
+            return
+
+        currency_map = {
+            "🇹🇯 Сомони": "TJS",
+            "🇷🇺 Рубль": "RUB",
+            "🇺🇸 Доллар": "USD"
+        }
+
+        if message.text not in currency_map:
+            await message.answer("Пожалуйста, выберите валюту из предложенных")
+            return
+
+        await state.update_data(currency=currency_map[message.text])
+        await state.set_state(Form.amount)
+        await message.answer("Введите сумму:", reply_markup=get_cancel_kb())
+
+    except Exception as e:
+        logger.error(f"Error in process_currency: {e}")
+        await message.answer("Ошибка при выборе валюты", reply_markup=get_main_kb())
+        await state.clear()
+
 # Асинхронная обертка для создания заявки
 @sync_to_async
-def create_staff_request(user_id, username, full_name, request_type, site, equipment, description, amount):
+def create_staff_request(user_id, username, full_name, request_type, site, equipment, description, amount, currency):
     """Асинхронное создание заявки"""
     try:
         return StaffRequest.objects.create(
@@ -172,6 +200,7 @@ def create_staff_request(user_id, username, full_name, request_type, site, equip
             request_type=request_type,
             site=site,
             equipment=equipment,  # Может быть None
+            currency=currency,
             description=description,
             amount=amount,
             status="pending",
@@ -195,6 +224,17 @@ def save_request_with_message_id(request, message_id):
     """Асинхронное сохранение с message_id"""
     request.telegram_message_id = message_id
     request.save()
+
+def get_currency_kb():
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="🇹🇯 Сомони"), KeyboardButton(text="🇷🇺 Рубль"), KeyboardButton(text="🇺🇸 Доллар")],
+            [KeyboardButton(text="❌ Отменить")]
+        ],
+        resize_keyboard=True,
+        input_field_placeholder="Выберите валюту"
+    )
+
 
 async def process_amount(message: Message, state: FSMContext):
     """Обработка ввода суммы и создание заявки"""
@@ -221,6 +261,7 @@ async def process_amount(message: Message, state: FSMContext):
             site=data["site"],
             equipment=data.get("equipment", None),  # Явно указываем None вместо пустой строки
             description=data["description"],
+            currency=data.get("currency", "TJS"),
             amount=amount
         )
         
@@ -229,6 +270,8 @@ async def process_amount(message: Message, state: FSMContext):
             raise ValueError("Заявка не была создана или не имеет ID")
         
         # Формируем сообщение
+        data = await state.get_data()
+        currency = data.get("currency", "TJS")  # по умолчанию сомони
         msg = (
             f"<b>Новая заявка #{request.id}</b>\n"
             f"Тип: {request.get_request_type_display()}\n"
@@ -238,7 +281,7 @@ async def process_amount(message: Message, state: FSMContext):
             msg += f"Оборудование: {request.equipment}\n"
         msg += (
             f"Описание: {request.description}\n"
-            f"Сумма: {request.amount} сомони\n"
+            f"Сумма: {request.amount} {currency}\n"
             f"От: @{message.from_user.username or message.from_user.full_name}"
         )
         
@@ -280,4 +323,5 @@ def register_handlers(dp):
     dp.message.register(process_site, Form.site)
     dp.message.register(process_equipment, Form.equipment)
     dp.message.register(process_description, Form.description)
+    dp.message.register(process_currency, Form.currency)
     dp.message.register(process_amount, Form.amount)

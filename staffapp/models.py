@@ -87,6 +87,15 @@ class StaffRequest(models.Model):
         default="Нет описания",  # Добавляем значение по умолчанию
         help_text="Подробное описание заявки"
     )
+    currency = models.CharField(
+        max_length=10,
+        choices=[
+            ('TJS', 'Сомони'),
+            ('RUB', 'Рубль'),
+            ('USD', 'Доллар')
+        ],
+        default='TJS'
+    )
     
     amount = models.DecimalField(
         max_digits=10,
